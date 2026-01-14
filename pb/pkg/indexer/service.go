@@ -22,13 +22,14 @@ const (
 
 // ChunkDocument represents a document in the MeiliSearch index.
 type ChunkDocument struct {
-	ID        string               `json:"id"`
-	Content   string               `json:"content"`
-	ChannelID string               `json:"channelId"`
-	Link      string               `json:"link"`
-	Created   time.Time            `json:"created"`
-	Updated   time.Time            `json:"updated"`
-	Vectors   map[string][]float32 `json:"_vectors"` // MeiliSearch 1.6+ expects a map if embedders are named
+	ID           string               `json:"id"`
+	Content      string               `json:"content"`
+	ChannelID    string               `json:"channelId"`
+	Link         string               `json:"link"`
+	Created      time.Time            `json:"created"`
+	Updated      time.Time            `json:"updated"`
+	Vectors      map[string][]float32 `json:"_vectors"` // MeiliSearch 1.6+ expects a map if embedders are named
+	RankingScore float64              `json:"_rankingScore,omitempty"`
 }
 
 // Service handles message indexing: embedding generation, PocketBase storage, and MeiliSearch sync.
@@ -222,7 +223,9 @@ func (s *Service) SearchHybrid(ctx context.Context, query string, queryEmbedding
 			SemanticRatio: 0.6, // 60% vector, 40% keyword
 			Embedder:      "default",
 		},
-		Vector: queryEmbedding,
+		Vector:           queryEmbedding,
+		ShowRankingScore: true,
+		RankingScoreThreshold: 0.5,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("search failed: %w", err)

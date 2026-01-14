@@ -54,6 +54,7 @@ class ChatsStore {
 		return pb.collection(Collections.Chats).subscribe(
 			'*',
 			(e) => {
+				console.log(e);
 				switch (e.action) {
 					case 'create':
 						this._chats = this._chats.filter((item) => !item.id.startsWith('temp-'));

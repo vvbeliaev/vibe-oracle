@@ -1,7 +1,8 @@
 import type { AuthRecord } from 'pocketbase';
 
-import { userStore } from '$lib/apps/user';
 import { pb, setPBCookie, type UsersResponse } from '$lib';
+import { userStore } from '$lib/apps/user';
+import { chatsStore, messagesStore } from '$lib/apps/chat';
 
 pb.authStore.onChange((token: string, record: AuthRecord) => {
 	if (record && pb!.authStore.isValid) {
@@ -11,6 +12,9 @@ pb.authStore.onChange((token: string, record: AuthRecord) => {
 
 			setPBCookie();
 		} catch (error) {
+			userStore.clear();
+			chatsStore.clear();
+			messagesStore.clear();
 			console.error('Failed to parse user data:', error);
 		}
 	} else {

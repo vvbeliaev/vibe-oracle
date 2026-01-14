@@ -16,14 +16,16 @@ import (
 )
 
 const (
-	ChatModel      = "gpt-5-mini"
-	MaxContextDocs = 20
+	ChatModel          = "gpt-4o-mini"
+	MaxContextDocs     = 20
+	RelevanceThreshold = 0.5 // Minimum relevance score for documents to be included in context
 )
 
 // ChatRequest represents an incoming chat request.
 type ChatRequest struct {
-	ChatID  string `json:"chatId"`
-	Message string `json:"message"`
+	ChatID    string   `json:"chatId"`
+	Message   string   `json:"message"`
+	SourceIDs []string `json:"sourceIds"`
 }
 
 // ChatResponse represents the response to a chat request.
@@ -95,7 +97,7 @@ func (s *Service) HandleChatSSE(e *core.RequestEvent) error {
 
 	// Save user message (if chat exists)
 	if chatID != "" {
-		_, _ = s.saveMessage(ctx, chatID, "user", query, nil)
+		_, _ = s.saveMessage(ctx, chatID, "user", query, nil, "final")
 	}
 
 	flusher, ok := e.Response.(http.Flusher)
@@ -107,6 +109,9 @@ func (s *Service) HandleChatSSE(e *core.RequestEvent) error {
 	e.Response.Header().Set("Content-Type", "text/event-stream")
 	e.Response.Header().Set("Cache-Control", "no-cache")
 	e.Response.Header().Set("Connection", "keep-alive")
+	e.Response.Header().Set("X-Accel-Buffering", "no") // Disable Nginx buffering
+	e.Response.WriteHeader(http.StatusOK)
+	flusher.Flush()
 
 	// Create streaming request
 	systemPrompt := `You are a helpful assistant that answers questions based on the provided context from Telegram channels.
@@ -141,7 +146,7 @@ RULES:
 	// Create a placeholder message in DB for streaming
 	var aiMsgRecord *core.Record
 	if chatID != "" {
-		aiMsgRecord, _ = s.saveMessage(ctx, chatID, "ai", "", map[string]interface{}{"citations": sources})
+		aiMsgRecord, _ = s.saveMessage(ctx, chatID, "ai", "", map[string]interface{}{"citations": sources}, "streaming")
 	}
 
 	for {
@@ -176,17 +181,24 @@ RULES:
 		_ = s.app.Save(aiMsgRecord)
 	}
 
-	// Update chat title if it was "New Chat" or empty
+	// Update chat title and status if it was "New Chat" or empty
 	if chatID != "" {
 		chat, err := s.app.FindRecordById("chats", chatID)
-		if err == nil && (chat.GetString("title") == "New Chat" || chat.GetString("title") == "") {
-			title := query
-			if len(title) > 50 {
-				title = title[:47] + "..."
+		if err == nil {
+			isNew := chat.GetString("title") == "New Chat" || chat.GetString("title") == ""
+			isEmpty := chat.GetString("status") == "empty"
+
+			if isNew || isEmpty {
+				if isNew {
+					title := query
+					if len(title) > 50 {
+						title = title[:47] + "..."
+					}
+					chat.Set("title", title)
+				}
+				chat.Set("status", "going")
+				_ = s.app.Save(chat)
 			}
-			chat.Set("title", title)
-			chat.Set("status", "going")
-			_ = s.app.Save(chat)
 		}
 	}
 
@@ -222,7 +234,7 @@ func (s *Service) HandleChat(e *core.RequestEvent) error {
 	}
 
 	// Save user message
-	userMsgRecord, err := s.saveMessage(ctx, chatID, "user", req.Message, nil)
+	userMsgRecord, err := s.saveMessage(ctx, chatID, "user", req.Message, nil, "final")
 	if err != nil {
 		s.logger.Error("Failed to save user message", zap.Error(err))
 		return e.InternalServerError("Failed to save message", err)
@@ -246,6 +258,27 @@ func (s *Service) HandleChat(e *core.RequestEvent) error {
 	// Build context from documents
 	contextText, sources := s.buildContext(docs)
 
+	// Update chat title and status if it was "New Chat" or empty
+	if chatID != "" {
+		chat, err := s.app.FindRecordById("chats", chatID)
+		if err == nil {
+			isNew := chat.GetString("title") == "New Chat" || chat.GetString("title") == ""
+			isEmpty := chat.GetString("status") == "empty"
+
+			if isNew || isEmpty {
+				if isNew {
+					title := req.Message
+					if len(title) > 50 {
+						title = title[:47] + "..."
+					}
+					chat.Set("title", title)
+				}
+				chat.Set("status", "going")
+				_ = s.app.Save(chat)
+			}
+		}
+	}
+
 	// Generate AI response
 	aiResponse, err := s.generateResponse(ctx, req.Message, contextText)
 	if err != nil {
@@ -257,7 +290,7 @@ func (s *Service) HandleChat(e *core.RequestEvent) error {
 	meta := map[string]interface{}{
 		"citations": sources,
 	}
-	aiMsgRecord, err := s.saveMessage(ctx, chatID, "ai", aiResponse, meta)
+	aiMsgRecord, err := s.saveMessage(ctx, chatID, "ai", aiResponse, meta, "final")
 	if err != nil {
 		s.logger.Error("Failed to save AI message", zap.Error(err))
 		return e.InternalServerError("Failed to save response", err)
@@ -295,7 +328,7 @@ func (s *Service) createChat(ctx context.Context, firstMessage string) (*core.Re
 }
 
 // saveMessage saves a message to the messages collection.
-func (s *Service) saveMessage(_ context.Context, chatID, role, content string, meta map[string]interface{}) (*core.Record, error) {
+func (s *Service) saveMessage(_ context.Context, chatID, role, content string, meta map[string]interface{}, status string) (*core.Record, error) {
 	collection, err := s.app.FindCollectionByNameOrId("messages")
 	if err != nil {
 		return nil, fmt.Errorf("messages collection not found: %w", err)
@@ -305,6 +338,7 @@ func (s *Service) saveMessage(_ context.Context, chatID, role, content string, m
 	record.Set("chat", chatID)
 	record.Set("role", role)
 	record.Set("content", content)
+	record.Set("status", status)
 	if meta != nil {
 		metaJSON, _ := json.Marshal(meta)
 		record.Set("meta", string(metaJSON))

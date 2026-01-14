@@ -16,3 +16,9 @@ export type Citation = {
 	link: string;
 	snippet: string;
 };
+
+export type ChatResponse = {
+	messageId: string;
+	content: string;
+	citations: Citation[];
+};

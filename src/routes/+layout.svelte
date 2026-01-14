@@ -42,6 +42,26 @@
 	const user = $derived(userStore.user);
 	const chats = $derived(chatsStore.chats);
 
+	const isActive = (path: string) => page.url.pathname === path;
+
+	let loaderRef: HTMLElement | undefined = $state();
+
+	$effect(() => {
+		if (!loaderRef || chatsStore.page >= chatsStore.totalPages) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting && !chatsStore.loading) {
+					chatsStore.loadNextPage();
+				}
+			},
+			{ threshold: 0.1 }
+		);
+
+		observer.observe(loaderRef);
+		return () => observer.disconnect();
+	});
+
 	async function handleNewChat() {
 		if (!user) {
 			goto('/auth');
@@ -88,8 +108,10 @@
 		const userId = userStore.user?.id;
 		if (!userId) return;
 		userStore.subscribe();
+		chatsStore.subscribe(userId);
 		return () => {
 			userStore.unsubscribe();
+			chatsStore.unsubscribe();
 		};
 	});
 
@@ -117,72 +139,51 @@
 {/snippet}
 
 {#snippet sidebarContent({ expanded }: { expanded: boolean })}
-	<div class="flex h-full flex-col overflow-hidden">
-		<div class="shrink-0 space-y-1 px-2 pt-4">
-			{#each nav as item}
-				<Button
-					class={[expanded ? 'justify-start' : '']}
-					color={page.url.pathname === item.href ? 'primary' : 'neutral'}
-					variant="ghost"
-					block
-					square={!expanded}
-					href={item.href}
-				>
-					<item.icon class={expanded ? 'size-5' : 'size-6'} />
-					{#if expanded}
-						<span class="text-nowrap">{item.label}</span>
-					{:else}
-						<span class="sr-only">{item.label}</span>
-					{/if}
-				</Button>
-			{/each}
-		</div>
+	<div class="shrink-0 px-2 pt-4">
+		<Button
+			block
+			class="rounded-xl"
+			disabled={chatsStore.loading}
+			square={!expanded}
+			onclick={handleNewChat}
+		>
+			<Plus class="size-5" />
+			{#if expanded}
+				<span class="text-nowrap">New Chat</span>
+			{/if}
+		</Button>
+	</div>
 
-		<div class="mt-8 flex flex-1 flex-col overflow-hidden">
-			<div class="mb-2 flex items-center justify-between px-4">
-				{#if expanded}
-					<span class="text-xs font-semibold tracking-wider uppercase opacity-50">Chats</span>
-				{/if}
-				<Button
-					variant="ghost"
-					size="sm"
-					square
-					onclick={handleNewChat}
-					title="New Chat"
-					class={!expanded ? 'mx-auto' : ''}
-				>
-					<Plus class="size-4" />
-				</Button>
-			</div>
+	<div class="divider my-2"></div>
 
-			<div class="flex-1 overflow-y-auto px-2 pb-4">
-				{#each chats as chat}
-					<Button
-						class={[
-							'mb-1 h-auto py-2 text-left transition-all',
-							expanded ? 'justify-start' : 'justify-center',
-							page.params.chatId === chat.id ? 'bg-base-200' : ''
-						]}
-						variant="ghost"
-						block
-						square={!expanded}
+	<div class="flex-1 overflow-y-auto px-2">
+		<ul class="menu w-full gap-1">
+			{#each chats as chat (chat.id)}
+				<li class="w-full">
+					<a
 						href="/chats/{chat.id}"
+						class={[
+							'btn flex w-full items-center gap-2 rounded-xl btn-ghost transition-all',
+							expanded ? 'justify-start px-4' : 'justify-center',
+							isActive(`/chats/${chat.id}`) ? 'btn-soft' : ''
+						]}
+						title={!expanded ? chat.title || chat.id : ''}
 					>
-						<MessageSquare class={expanded ? 'size-4 shrink-0' : 'size-5'} />
+						{chat.id.slice(0, 2)}.
 						{#if expanded}
-							<div class="ml-2 flex flex-col overflow-hidden">
-								<span class="truncate text-sm font-medium">
-									{chat.title || 'Untitled Chat'}
-								</span>
-								<span class="truncate text-[10px] opacity-40">
-									{new Date(chat.created).toLocaleDateString()}
-								</span>
-							</div>
+							<span class="truncate font-medium">{chat.title || chat.id}</span>
 						{/if}
-					</Button>
-				{/each}
+					</a>
+				</li>
+			{/each}
+		</ul>
+
+		<!-- Infinite scroll loader -->
+		{#if chatsStore.page < chatsStore.totalPages}
+			<div bind:this={loaderRef} class="flex justify-center py-4">
+				<span class="loading loading-sm loading-spinner"></span>
 			</div>
-		</div>
+		{/if}
 	</div>
 {/snippet}
 
@@ -282,8 +283,8 @@
 		</Sidebar>
 
 		<!-- Main Content -->
-		<main class="mb-12 flex-1 overflow-y-auto md:mb-0">
-			<div class="max-w-[1440px]">
+		<main class="mb-12 flex-1 overflow-hidden md:mb-0">
+			<div class="mx-auto h-full max-w-[1440px]">
 				{@render children()}
 			</div>
 		</main>
