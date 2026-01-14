@@ -1,6 +1,16 @@
 <script lang="ts">
 	import posthog from 'posthog-js';
-	import { House, Search, CalendarDays, Settings, LogIn, PanelRight, Menu } from 'lucide-svelte';
+	import {
+		House,
+		Search,
+		CalendarDays,
+		Settings,
+		LogIn,
+		PanelRight,
+		Menu,
+		Plus,
+		MessageSquare
+	} from 'lucide-svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 
@@ -13,9 +23,12 @@
 		ThemeController,
 		swipeable,
 		uiStore,
-		Sidebar
+		Sidebar,
+		Collections,
+		ChatsStatusOptions
 	} from '$lib';
 	import { userStore } from '$lib/apps/user';
+	import { chatsStore, chatApi } from '$lib/apps/chat';
 
 	import './layout.css';
 	import PWA from './PWA.svelte';
@@ -27,6 +40,24 @@
 	const globalPromise = $derived(data.globalPromise);
 
 	const user = $derived(userStore.user);
+	const chats = $derived(chatsStore.chats);
+
+	async function handleNewChat() {
+		if (!user) {
+			goto('/auth');
+			return;
+		}
+
+		let chat = chatsStore.getEmpty();
+		if (!chat) {
+			chat = await chatApi.create({
+				user: user.id,
+				title: 'New Chat',
+				status: ChatsStatusOptions.empty
+			});
+		}
+		goto(`/chats/${chat.id}`);
+	}
 
 	// Posthog identify and set person
 	$effect(() => {
@@ -46,8 +77,9 @@
 
 	// Global user load
 	$effect(() => {
-		globalPromise.then(({ userAuth }) => {
+		globalPromise.then(({ userAuth, chatsRes }) => {
 			if (userAuth) userStore.set(userAuth);
+			if (chatsRes) chatsStore.set(chatsRes);
 		});
 	});
 
@@ -85,24 +117,72 @@
 {/snippet}
 
 {#snippet sidebarContent({ expanded }: { expanded: boolean })}
-	<div class="shrink-0 space-y-1 px-2 pt-4">
-		{#each nav as item}
-			<Button
-				class={[expanded ? 'justify-start' : '']}
-				color={page.url.pathname === item.href ? 'primary' : 'neutral'}
-				variant="ghost"
-				block
-				square={!expanded}
-				href={item.href}
-			>
-				<item.icon class={expanded ? 'size-5' : 'size-6'} />
+	<div class="flex h-full flex-col overflow-hidden">
+		<div class="shrink-0 space-y-1 px-2 pt-4">
+			{#each nav as item}
+				<Button
+					class={[expanded ? 'justify-start' : '']}
+					color={page.url.pathname === item.href ? 'primary' : 'neutral'}
+					variant="ghost"
+					block
+					square={!expanded}
+					href={item.href}
+				>
+					<item.icon class={expanded ? 'size-5' : 'size-6'} />
+					{#if expanded}
+						<span class="text-nowrap">{item.label}</span>
+					{:else}
+						<span class="sr-only">{item.label}</span>
+					{/if}
+				</Button>
+			{/each}
+		</div>
+
+		<div class="mt-8 flex flex-1 flex-col overflow-hidden">
+			<div class="mb-2 flex items-center justify-between px-4">
 				{#if expanded}
-					<span class="text-nowrap">{item.label}</span>
-				{:else}
-					<span class="sr-only">{item.label}</span>
+					<span class="text-xs font-semibold tracking-wider uppercase opacity-50">Chats</span>
 				{/if}
-			</Button>
-		{/each}
+				<Button
+					variant="ghost"
+					size="sm"
+					square
+					onclick={handleNewChat}
+					title="New Chat"
+					class={!expanded ? 'mx-auto' : ''}
+				>
+					<Plus class="size-4" />
+				</Button>
+			</div>
+
+			<div class="flex-1 overflow-y-auto px-2 pb-4">
+				{#each chats as chat}
+					<Button
+						class={[
+							'mb-1 h-auto py-2 text-left transition-all',
+							expanded ? 'justify-start' : 'justify-center',
+							page.params.chatId === chat.id ? 'bg-base-200' : ''
+						]}
+						variant="ghost"
+						block
+						square={!expanded}
+						href="/chats/{chat.id}"
+					>
+						<MessageSquare class={expanded ? 'size-4 shrink-0' : 'size-5'} />
+						{#if expanded}
+							<div class="ml-2 flex flex-col overflow-hidden">
+								<span class="truncate text-sm font-medium">
+									{chat.title || 'Untitled Chat'}
+								</span>
+								<span class="truncate text-[10px] opacity-40">
+									{new Date(chat.created).toLocaleDateString()}
+								</span>
+							</div>
+						{/if}
+					</Button>
+				{/each}
+			</div>
+		</div>
 	</div>
 {/snippet}
 

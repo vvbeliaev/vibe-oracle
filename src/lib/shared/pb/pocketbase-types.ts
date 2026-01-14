@@ -11,6 +11,9 @@ export enum Collections {
 	Mfas = "_mfas",
 	Otps = "_otps",
 	Superusers = "_superusers",
+	Chats = "chats",
+	Chunks = "chunks",
+	Messages = "messages",
 	Users = "users",
 }
 
@@ -92,11 +95,57 @@ export type SuperusersRecord = {
 	verified?: boolean
 }
 
+export enum ChatsStatusOptions {
+	"empty" = "empty",
+	"going" = "going",
+}
+export type ChatsRecord = {
+	created: IsoAutoDateString
+	id: string
+	status?: ChatsStatusOptions
+	title?: string
+	updated: IsoAutoDateString
+	user?: RecordIdString
+}
+
+export type ChunksRecord<Tmeta = unknown, Traw = unknown> = {
+	channelId?: string
+	content?: string
+	created: IsoAutoDateString
+	id: string
+	link?: string
+	meta?: null | Tmeta
+	raw?: null | Traw
+	updated: IsoAutoDateString
+}
+
+export enum MessagesRoleOptions {
+	"user" = "user",
+	"ai" = "ai",
+}
+
+export enum MessagesStatusOptions {
+	"optimistic" = "optimistic",
+	"final" = "final",
+	"streaming" = "streaming",
+}
+export type MessagesRecord<Tmeta = unknown> = {
+	chat?: RecordIdString
+	content?: string
+	created: IsoAutoDateString
+	id: string
+	meta?: null | Tmeta
+	role?: MessagesRoleOptions
+	status?: MessagesStatusOptions
+	updated: IsoAutoDateString
+}
+
 export type UsersRecord = {
 	avatar?: FileNameString
 	created: IsoAutoDateString
-	email: string
+	email?: string
 	emailVisibility?: boolean
+	guest?: string
 	id: string
 	name?: string
 	password: string
@@ -111,6 +160,9 @@ export type ExternalauthsResponse<Texpand = unknown> = Required<ExternalauthsRec
 export type MfasResponse<Texpand = unknown> = Required<MfasRecord> & BaseSystemFields<Texpand>
 export type OtpsResponse<Texpand = unknown> = Required<OtpsRecord> & BaseSystemFields<Texpand>
 export type SuperusersResponse<Texpand = unknown> = Required<SuperusersRecord> & AuthSystemFields<Texpand>
+export type ChatsResponse<Texpand = unknown> = Required<ChatsRecord> & BaseSystemFields<Texpand>
+export type ChunksResponse<Tmeta = unknown, Traw = unknown, Texpand = unknown> = Required<ChunksRecord<Tmeta, Traw>> & BaseSystemFields<Texpand>
+export type MessagesResponse<Tmeta = unknown, Texpand = unknown> = Required<MessagesRecord<Tmeta>> & BaseSystemFields<Texpand>
 export type UsersResponse<Texpand = unknown> = Required<UsersRecord> & AuthSystemFields<Texpand>
 
 // Types containing all Records and Responses, useful for creating typing helper functions
@@ -121,6 +173,9 @@ export type CollectionRecords = {
 	_mfas: MfasRecord
 	_otps: OtpsRecord
 	_superusers: SuperusersRecord
+	chats: ChatsRecord
+	chunks: ChunksRecord
+	messages: MessagesRecord
 	users: UsersRecord
 }
 
@@ -130,6 +185,9 @@ export type CollectionResponses = {
 	_mfas: MfasResponse
 	_otps: OtpsResponse
 	_superusers: SuperusersResponse
+	chats: ChatsResponse
+	chunks: ChunksResponse
+	messages: MessagesResponse
 	users: UsersResponse
 }
 

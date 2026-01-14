@@ -4,6 +4,9 @@ b:
 up:
 	docker compose -f compose.local.yml up -d
 
-make dev:
+dev:
 	make b
 	make up
+
+meili:
+	docker compose -f compose.local.yml up meilisearch -d

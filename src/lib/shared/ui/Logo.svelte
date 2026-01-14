@@ -8,10 +8,12 @@
 		text?: string;
 	}
 
-	const { size = 24, class: className = '', text = 'PUBLIC_ENV' }: Props = $props();
+	const { size = 24, class: className = '', text = 'Vibe Oracle' }: Props = $props();
 </script>
 
-<div class="flex size-9 items-center justify-center rounded-xl bg-primary text-white">
+<div
+	class="flex size-9 items-center justify-center rounded-xl bg-primary text-white dark:text-black"
+>
 	<GraduationCap {size} />
 </div>
 <span class="font-display text-xl font-bold tracking-tight text-nowrap">{text}</span>

@@ -4,11 +4,42 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      - PUBLIC_PB_URL=${PUBLIC_PB_URL:-PUBLIC_ENV}
+      - PUBLIC_PB_URL=${PUBLIC_PB_URL:-https://jobhunter.cogisoft.dev}
       - PUBLIC_POSTHOG_URL=${PUBLIC_POSTHOG_URL:-https://eu.i.posthog.com}
-      - PUBLIC_POSTHOG_TOKEN=${PUBLIC_POSTHOG_TOKEN:-PUBLIC_ENV}
+      - PUBLIC_POSTHOG_TOKEN=${PUBLIC_POSTHOG_TOKEN:-pub}
 
       - PB_EMAIL=${PB_EMAIL}
       - PB_PASSWORD=${PB_PASSWORD}
+
+      - TG_API_ID=${TG_API_ID}
+      - TG_API_HASH=${TG_API_HASH}
+
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
+
+      - MEILI_HOST=${MEILI_HOST}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+
+      - TARGET_CHAT_IDS=${TARGET_CHAT_IDS}
     volumes:
       - ./pb/pb_data:/app/pb_data
+      - ./session.json:/app/session.json
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    volumes:
+      - ./meilisearch/data:/data
+    environment:
+      - SERVICE_URL_MEILISEARCH_7700
+      - 'MEILI_NO_ANALYTICS=${MEILI_NO_ANALYTICS:-true}'
+      - 'MEILI_ENV=${MEILI_ENV:-production}'
+      - 'MEILI_MASTER_KEY=${MEILI_MASTER_KEY}'
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - 'http://127.0.0.1:7700/health'
+      interval: 2s
+      timeout: 10s
+      retries: 15

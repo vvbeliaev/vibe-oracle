@@ -1,26 +1,32 @@
 import { Collections, nanoid, pb } from '$lib';
 
+import { chatsStore } from '$lib/apps/chat/chats.svelte';
+
+import { userStore } from './user.svelte';
+
 export async function globalUserLoad() {
 	console.log('globalUserLoad', pb.authStore.isValid);
 
 	if (!pb.authStore.isValid) {
 		try {
 			const userAuth = await authGuest();
-			return { userAuth };
+			const chatsRes = await chatsStore.load(userAuth.record.id);
+			return { userAuth, chatsRes };
 		} catch (error) {
 			console.error(error);
 			pb.authStore.clear();
-			return { userAuth: null };
+			return { userAuth: null, chatsRes: null };
 		}
 	}
 
 	try {
-		const userAuth = await pb.collection(Collections.Users).authRefresh();
-		return { userAuth };
+		const userAuth = await userStore.load();
+		const chatsRes = await chatsStore.load(userAuth.record.id);
+		return { userAuth, chatsRes };
 	} catch (error) {
 		console.error(error);
 		pb.authStore.clear();
-		return { userAuth: null };
+		return { userAuth: null, chatsRes: null };
 	}
 }
 
