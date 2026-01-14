@@ -9,7 +9,8 @@
 		PanelRight,
 		Menu,
 		Plus,
-		MessageSquare
+		MessageSquare,
+		Github
 	} from 'lucide-svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -206,7 +207,42 @@
 		</div>
 	{/if}
 
-	<div class={['mb-1 border-base-300', expanded ? 'px-2' : 'flex justify-center']}>
+	<div class={['mb-1 flex flex-col gap-2 border-base-300', expanded ? 'px-2' : 'items-center']}>
+		<a
+			href="https://t.me/xvibecoders"
+			target="_blank"
+			rel="noopener noreferrer"
+			class={['btn btn-ghost', expanded ? 'btn-block justify-start gap-2 px-4' : 'btn-square']}
+			title="Join Telegram Group"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				fill="none"
+				viewBox="0 0 36 36"
+				class={expanded ? 'size-5' : 'size-8'}
+			>
+				<circle cx="18" cy="18" r="18" fill="#229ED9" />
+				<path
+					fill="#fff"
+					d="M26.48 12.34c.21-.11.44-.18.5.09.07.28.08.45.02.94-.43 3.08-1.51 9.04-2.08 11.97-.26 1.4-.77 1.87-1.26 1.91-1.07.1-1.88-.71-2.92-1.39-1.62-1.06-2.54-1.73-4.08-2.75-1.8-1.18-.63-1.83.39-2.89.27-.28 1.99-1.83 2.03-1.99.01-.05.02-.27-.08-.38-.1-.1-.29-.07-.42-.04-.18.04-3.09 1.08-3.69 1.3-.36.13-.71.19-.68-.28.04-.6.27-1.21.67-1.53.42-.34 4.06-1.72 5.54-2.25 2.66-.96 3.21-1.13 3.57-1.13.08 0 .26-.01.37.02z"
+				/>
+			</svg>
+			{#if expanded}
+				<span>Telegram</span>
+			{/if}
+		</a>
+		<a
+			href="https://github.com/vvbeliaev/vibe-oracle"
+			target="_blank"
+			rel="noopener noreferrer"
+			class={['btn btn-ghost', expanded ? 'btn-block justify-start gap-2 px-4' : 'btn-square']}
+			title="View on GitHub"
+		>
+			<Github class={expanded ? 'size-5' : 'size-8'} />
+			{#if expanded}
+				<span>GitHub</span>
+			{/if}
+		</a>
 		<ThemeController {expanded} navStyle />
 	</div>
 
@@ -291,6 +327,11 @@
 
 		<!-- Mobile Dock -->
 		<div class="dock dock-sm border-t border-base-300 md:hidden">
+			<button onclick={() => uiStore.setSidebarOpen(true)}>
+				<Menu class="size-5" />
+				<span class="dock-label">Menu</span>
+			</button>
+
 			{#each nav as item}
 				<a href={item.href} class:dock-active={page.url.pathname === item.href}>
 					<item.icon class="size-5" />
@@ -309,16 +350,6 @@
 					<span class="dock-label">Log In</span>
 				</a>
 			{/if}
-
-			<!-- Hidden for now -->
-			<button class="hidden" onclick={() => uiStore.toggleRightSidebar()}>
-				<PanelRight class="size-5" />
-				<span class="dock-label">Panel</span>
-			</button>
-			<button class="hidden" onclick={() => uiStore.setSidebarOpen(true)}>
-				<Menu class="size-5" />
-				<span class="dock-label">Menu</span>
-			</button>
 		</div>
 	</div>
 {/await}

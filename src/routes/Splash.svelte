@@ -16,7 +16,7 @@
 
 			<!-- Heart icon wrapper with animation -->
 			<div class="relative">
-				<span class="text-center text-[5rem] font-bold text-primary">Vibe Oracle</span>
+				<span class="text-center text-[3.5rem] font-bold text-primary">Vibe Oracle</span>
 			</div>
 		</div>
 

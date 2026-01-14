@@ -12,7 +12,7 @@ func init() {
         // for all available settings fields you could check
         // https://github.com/pocketbase/pocketbase/blob/develop/core/settings_model.go#L121-L130
         settings.Meta.AppName = "Vibe Oracle"
-        settings.Meta.AppURL = "https://vibeoracul.cogisoft.dev"
+        settings.Meta.AppURL = "https://oracle.cogisoft.dev"
         settings.Logs.MaxDays = 2
         settings.Logs.LogAuthId = true
         settings.Logs.LogIP = false
