@@ -37,7 +37,7 @@ func Load() *Config {
 		TargetChatIDs: parseIntList(os.Getenv("TARGET_CHAT_IDS")),
 
 		// MeiliSearch
-		MeiliHost:   getEnvOrDefault("MEILI_HOST", "http://localhost:7700"),
+		MeiliHost:   getEnvOrDefault("MEILI_HOST", "http://meilisearch:7700"),
 		MeiliMasterKey: os.Getenv("MEILI_MASTER_KEY"),
 
 		// OpenAI
