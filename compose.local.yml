@@ -32,7 +32,7 @@ services:
   meilisearch:
     image: getmeili/meilisearch:latest
     volumes:
-      - ./meilisearch/data:/data
+      - ./meilisearch/data:/meili_data
     environment:
       - SERVICE_URL_MEILISEARCH_7700
       - 'MEILI_NO_ANALYTICS=${MEILI_NO_ANALYTICS:-true}'
